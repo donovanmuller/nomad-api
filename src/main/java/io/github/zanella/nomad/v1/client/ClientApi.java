@@ -1,7 +1,8 @@
 package io.github.zanella.nomad.v1.client;
 
-import io.github.zanella.nomad.v1.client.models.AllocationStats;
 import io.github.zanella.nomad.v1.client.models.AllocationFile;
+import io.github.zanella.nomad.v1.client.models.AllocationStats;
+import io.github.zanella.nomad.v1.client.models.LogStream;
 import io.github.zanella.nomad.v1.client.models.Stats;
 
 import java.util.List;
@@ -30,7 +31,7 @@ public interface ClientApi {
     @RequestLine("GET " + allocationFileStatsUrl)
     AllocationFile getAllocationFileStats(@Param("allocationId") String allocationId, @Param("path") String path);
 
-    String allocationFileContentUrl = "/v1/client/fs/cat/{allocationId}?path={path}";
+    String allocationFileContentUrl = "/v1/client/fs/readat/{allocationId}?path={path}&offset=0";
 
     @RequestLine("GET " + allocationFileContentUrl)
     byte[] getAllocationFileContent(@Param("allocationId") String allocationId, @Param("path") String path);
@@ -40,4 +41,11 @@ public interface ClientApi {
     @RequestLine("GET " + allocationFileContentOffsetUrl)
     byte[] getAllocationFileContent(@Param("allocationId") String allocationId, @Param("path") String path,
                                     @Param("offset") int offset, @Param("limit") int limit);
+
+    String allocationLogStreamUrl = "/v1/client/fs/logs/{allocationId}?task={task}&follow={follow}&type={type}&offset={offset}&origin={origin}&plain={plain}";
+
+    @RequestLine("GET " + allocationLogStreamUrl)
+    List<LogStream> getAllocationLogStreamsList(@Param("allocationId") String allocationId, @Param("task") String task,
+                                                @Param("follow") Boolean follow, @Param("type") LogStream.Type type,
+                                                @Param("offset") int offset, @Param("origin") LogStream.Origin origin, @Param("plain") Boolean plain);
 }

@@ -1,6 +1,9 @@
 package io.github.zanella.nomad.v1;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -10,6 +13,7 @@ import io.github.zanella.nomad.v1.agent.AgentApi;
 import io.github.zanella.nomad.v1.allocations.AllocationApi;
 import io.github.zanella.nomad.v1.allocations.AllocationsApi;
 import io.github.zanella.nomad.v1.client.ClientApi;
+import io.github.zanella.nomad.v1.client.models.LogStream;
 import io.github.zanella.nomad.v1.evaluations.EvaluationApi;
 import io.github.zanella.nomad.v1.evaluations.EvaluationsApi;
 import io.github.zanella.nomad.v1.jobs.JobApi;
@@ -23,6 +27,8 @@ import lombok.Getter;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 
 import feign.Feign;
 import feign.Logger;
@@ -99,8 +105,12 @@ public final class V1Client {
 
     private final class JacksonDecoderExtended extends JacksonDecoder {
 
+        private final JsonFactory jsonFactory;
+
         public JacksonDecoderExtended(ObjectMapper mapper) {
             super(mapper);
+
+            this.jsonFactory = mapper.getFactory();
         }
 
         @Override
@@ -109,7 +119,41 @@ public final class V1Client {
                 .anyMatch(header -> header.contains("application/json"))) {
                 return super.decode(response, type);
             } else {
-                return new feign.codec.Decoder.Default().decode(response, type);
+                if (type.getTypeName().contains(LogStream.class.getName())) {
+                    final JsonParser parser = this.jsonFactory.createParser(response.body().asInputStream());
+                    final List<LogStream> result = new ArrayList<>();
+
+                    while (parser.nextToken() != null) {
+                        if (parser.getCurrentToken() == JsonToken.START_OBJECT) {
+                            LogStream entry = new LogStream();
+
+                            while (parser.nextToken() != JsonToken.END_OBJECT) {
+                                String field = parser.getCurrentName();
+                                parser.nextToken();
+                                switch (field) {
+                                    case "Data":
+                                        entry.setData(parser.getValueAsString());
+                                        break;
+                                    case "File":
+                                        entry.setFile(parser.getValueAsString());
+                                        break;
+                                    case "Offset":
+                                        entry.setOffset(parser.getValueAsDouble());
+                                        break;
+                                    case "FileEvent":
+                                        entry.setFileEvent(parser.getValueAsString());
+                                        break;
+                                }
+                            }
+                            result.add(entry);
+                        }
+                    }
+                    parser.close();
+
+                    return result;
+                } else {
+                    return new feign.codec.Decoder.Default().decode(response, type);
+                }
             }
         }
     }

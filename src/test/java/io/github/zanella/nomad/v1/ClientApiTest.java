@@ -14,11 +14,13 @@ import com.google.common.collect.ImmutableMap;
 import io.github.zanella.nomad.v1.client.ClientApi;
 import io.github.zanella.nomad.v1.client.models.AllocationFile;
 import io.github.zanella.nomad.v1.client.models.AllocationStats;
+import io.github.zanella.nomad.v1.client.models.LogStream;
 import io.github.zanella.nomad.v1.client.models.Stats;
 
 import org.hamcrest.core.IsEqual;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class ClientApiTest extends AbstractCommon {
@@ -390,5 +392,28 @@ public class ClientApiTest extends AbstractCommon {
             .willReturn(aResponse().withHeader("Content-Type", "text/plain").withBody(rawSelf)));
 
         assertThat(rawSelf, IsEqual.equalTo(nomadClient.v1.client.getAllocationFileContent("allocationId", "/", 10, 10)));
+    }
+
+    @Test
+    public void getAllocationLogStreamTest() {
+        final String value = "dGVzdA0K";
+        final List<LogStream> rawSelf = Arrays.asList(
+            new LogStream("alloc/logs/nginx.stderr.0", 65536D, value, null),
+            new LogStream("alloc/logs/nginx.stderr.0", 81893D, value, null)
+        );
+
+        stubFor(get(urlEqualTo(UriTemplate.fromTemplate(ClientApi.allocationLogStreamUrl)
+            .expand(ImmutableMap.<String, Object>builder()
+                .put("allocationId", "allocationId")
+                .put("task", "task")
+                .put("follow", true)
+                .put("type", LogStream.Type.stderr)
+                .put("offset", 0)
+                .put("origin", LogStream.Origin.start)
+                .put("plain", false)
+                .build())))
+            .willReturn(aResponse().withHeader("Content-Type", "text/plain").withBody("{\"Offset\":65536,\"Data\":\""+ value + "\",\"File\":\"alloc/logs/nginx.stderr.0\"}{\"Offset\":81893,\"Data\":\""+ value + "\",\"File\":\"alloc/logs/nginx.stderr.0\"}")));
+
+        assertThat(rawSelf, IsEqual.equalTo(nomadClient.v1.client.getAllocationLogStreamsList("allocationId", "task", true, LogStream.Type.stderr, 0, LogStream.Origin.start, false)));
     }
 }
