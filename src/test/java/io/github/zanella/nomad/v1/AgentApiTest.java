@@ -4,8 +4,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.github.zanella.nomad.v1.agent.AgentApi;
 import io.github.zanella.nomad.v1.agent.models.JoinResult;
+import io.github.zanella.nomad.v1.agent.models.Members;
 import io.github.zanella.nomad.v1.agent.models.Self;
 import org.junit.Test;
+
+import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.Assert.assertEquals;
@@ -147,36 +150,49 @@ public class AgentApiTest extends AbstractCommon {
 
     @Test
     public void getMembersTest() {
-        final String rawMembers = "[ {" +
-                "    \"Name\": \"Armons-MacBook-Air.local.global\"," +
-                "    \"Addr\": \"127.0.0.1\"," +
-                "    \"Port\": 4648," +
-                "    \"Tags\": {" +
-                "        \"bootstrap\": \"1\", \"build\": \"0.1.0dev\", \"dc\": \"dc1\", \"port\": \"4647\"," +
-                "        \"region\": \"global\", \"role\": \"nomad\", \"vsn\": \"1\", \"vsn_max\": \"1\"," +
-                "        \"vsn_min\": \"1\"" +
-                "    }," +
-                "    \"Status\": \"alive\"," +
-                "    \"ProtocolMin\": 1," +
-                "    \"ProtocolMax\": 3," +
-                "    \"ProtocolCur\": 2," +
-                "    \"DelegateMin\": 2," +
-                "    \"DelegateMax\": 4," +
-                "    \"DelegateCur\": 4" +
-                "} ]";
+        final String rawMembers = "{" +
+                "   \"ServerName\": \"nomad-server\"," +
+                "   \"ServerRegion\": \"vagrant\"," +
+                "   \"ServerDC\": \"dc1\"," +
+                "   \"Members\": [" +
+                "       {" +
+                "           \"Name\": \"nomad-member\"," +
+                "           \"Addr\": \"172.16.0.2\"," +
+                "           \"Port\": 4648," +
+                "               \"Tags\": {" +
+                "               \"dc\": \"dc1\"," +
+                "               \"vsn\": \"1\"," +
+                "               \"mvn\": \"1\"," +
+                "               \"build\": \"0.5.6\"," +
+                "               \"port\": \"4647\"," +
+                "               \"bootstrap\": \"1\"," +
+                "               \"role\": \"nomad\"," +
+                "               \"region\": \"global\"" +
+                "            }," +
+                "           \"Status\": \"alive\"," +
+                "           \"ProtocolMin\": 1," +
+                "           \"ProtocolMax\": 5," +
+                "           \"ProtocolCur\": 2," +
+                "           \"DelegateMin\": 2," +
+                "           \"DelegateMax\": 4," +
+                "           \"DelegateCur\": 4" +
+                "       }" +
+                "    ] " +
+                "}";
 
         stubFor(get(urlEqualTo(AgentApi.membersUrl))
                 .willReturn(aResponse().withHeader("Content-Type", "application/json").withBody(rawMembers)));
 
         final Self.Member expectedMember = new Self.Member(
-                "Armons-MacBook-Air.local.global", "127.0.0.1", 4648,
+                "nomad-member", "172.16.0.2", 4648,
                 ImmutableMap.<String, String>builder()
-                        .put("bootstrap", "1").put("build", "0.1.0dev").put("dc", "dc1").put("port", "4647")
-                        .put("region", "global").put("role", "nomad").put("vsn", "1").put("vsn_max", "1")
-                        .put("vsn_min", "1").build(),
-                "alive", 1, 3, 2, 2, 4, 4);
+                        .put("bootstrap", "1").put("build", "0.5.6").put("dc", "dc1").put("port", "4647")
+                        .put("region", "global").put("role", "nomad").put("vsn", "1").put("mvn", "1").build(),
+                "alive", 1, 5, 2, 2, 4, 4);
+        final Members members = new Members("nomad-server", "vagrant", "dc1",
+                ImmutableList.of(expectedMember));
 
-        assertEquals(ImmutableList.of(expectedMember), nomadClient.v1.agent.getMembers());
+        assertEquals(members, nomadClient.v1.agent.getMembers());
     }
 
     @Test

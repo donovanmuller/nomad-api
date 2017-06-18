@@ -3,6 +3,7 @@ package io.github.zanella.nomad.v1.agent;
 import feign.Param;
 import feign.RequestLine;
 import io.github.zanella.nomad.v1.agent.models.JoinResult;
+import io.github.zanella.nomad.v1.agent.models.Members;
 import io.github.zanella.nomad.v1.agent.models.Self;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public interface AgentApi {
     String membersUrl = "/v1/agent/members";
 
     @RequestLine("GET " + membersUrl)
-    List<Self.Member> getMembers();
+    Members getMembers();
 
     String forceLeaveUrl = "/v1/agent/force-leave";
 

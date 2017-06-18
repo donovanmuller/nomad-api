@@ -23,7 +23,7 @@ compile "io.github.zanella.nomad:nomad-api:0.9"
 <dependency>
   <groupId>io.github.zanella.nomad</groupId>
   <artifactId>nomad-api</artifactId>
-  <version>0.9</version>
+  <version>0.10-SNAPSHOT</version>
 </dependency>
 ```
 
